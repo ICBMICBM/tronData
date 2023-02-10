@@ -33,11 +33,11 @@ func mapToCsv(addr string, tx map[string]map[string][]float64) {
 	for k, v := range tx {
 		if k != addr {
 			for i, j := range v {
-				writerIn.Write([]string{k, i, strconv.FormatFloat(j[0], 'f', 6, 64), strconv.FormatFloat(j[1], 10, 3, 64)})
+				writerIn.Write([]string{k, i, strconv.FormatFloat(j[0], 'f', 6, 64), strconv.FormatFloat(j[1], 'f', 3, 64)})
 			}
 		} else {
 			for i, j := range v {
-				writerOut.Write([]string{k, i, strconv.FormatFloat(j[0], 'f', 6, 64), strconv.FormatFloat(j[1], 10, 3, 64)})
+				writerOut.Write([]string{k, i, strconv.FormatFloat(j[0], 'f', 6, 64), strconv.FormatFloat(j[1], 'f', 3, 64)})
 			}
 		}
 	}
@@ -47,3 +47,7 @@ func mapToCsv(addr string, tx map[string]map[string][]float64) {
 	defer txInFile.Close()
 	Logger.Println("done")
 }
+
+//func drawImage(tx map[string]map[string][]float64) {
+//
+//}

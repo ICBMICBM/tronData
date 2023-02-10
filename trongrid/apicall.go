@@ -104,7 +104,7 @@ func MergeTx(data []string) map[string]map[string][]float64 {
 					if _, b := txs[from][to]; !b {
 						txs[from][to] = []float64{value, 1}
 					} else {
-						txs[from][to][0] += 1
+						txs[from][to][0] += value
 						txs[from][to][1] += 1
 					}
 				}
