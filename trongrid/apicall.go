@@ -12,6 +12,12 @@ import (
 
 var Logger = log.New(os.Stdout, "trongrid:", log.Lshortfile)
 
+type TxDetail struct {
+	Total       float64
+	TxCount     uint64
+	TxTimestamp []int64
+}
+
 var apiKeys = []string{
 	"92f3bce0-8bd6-4679-934b-89bf8cceedc6",
 	"4e7eec01-3806-41d8-8bae-77510dbe2922",
@@ -86,9 +92,9 @@ func GetAllTrc20Tx(addr string) []string {
 	return res
 }
 
-func MergeTx(data []string) map[string]map[string][]float64 {
+func MergeTx(data []string) map[string]map[string]TxDetail {
 	var used = map[string]bool{}
-	var txs = map[string]map[string][]float64{}
+	var txs = map[string]map[string]TxDetail{}
 	for _, d := range data {
 		dataBlock := gjson.Get(d, "data").Array()
 		for _, t := range dataBlock {
@@ -99,13 +105,26 @@ func MergeTx(data []string) map[string]map[string][]float64 {
 			}
 			if singleTx["type"].String() == "Transfer" {
 				if _, b := txs[from]; !b {
-					txs[from] = map[string][]float64{to: {value, 1}}
+					txs[from] = map[string]TxDetail{to: {
+						Total:       value,
+						TxCount:     1,
+						TxTimestamp: []int64{singleTx["block_timestamp"].Int()},
+					}}
 				} else {
 					if _, b := txs[from][to]; !b {
-						txs[from][to] = []float64{value, 1}
+						txs[from][to] = TxDetail{
+							Total:       value,
+							TxCount:     1,
+							TxTimestamp: []int64{singleTx["block_timestamp"].Int()},
+						}
 					} else {
-						txs[from][to][0] += value
-						txs[from][to][1] += 1
+						var detail = txs[from][to]
+						var newDetail = TxDetail{
+							Total:       detail.Total + value,
+							TxCount:     detail.TxCount + 1,
+							TxTimestamp: append(detail.TxTimestamp, singleTx["block_timestamp"].Int()),
+						}
+						txs[from][to] = newDetail
 					}
 				}
 				used[txHash] = true

@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/samber/lo"
 	"log"
 	"os"
 	"strconv"
+	"time"
 	"tronData/trongrid"
 )
 
@@ -20,7 +22,12 @@ func main() {
 	mapToCsv(addr, t)
 }
 
-func mapToCsv(addr string, tx map[string]map[string][]float64) {
+func tsToString(ts int64) string {
+	t := time.Unix(ts/1000, 0)
+	return t.Format(time.DateTime)
+}
+
+func mapToCsv(addr string, tx map[string]map[string]trongrid.TxDetail) {
 	txInFile, err := os.OpenFile(fmt.Sprintf("%s_in.csv", addr), os.O_WRONLY|os.O_CREATE, 0777)
 	txOutFile, err := os.OpenFile(fmt.Sprintf("%s_out.csv", addr), os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
@@ -28,16 +35,22 @@ func mapToCsv(addr string, tx map[string]map[string][]float64) {
 	}
 	writerIn := csv.NewWriter(txInFile)
 	writerOut := csv.NewWriter(txOutFile)
-	writerIn.Write([]string{"from", "to", "value", "count"})
-	writerOut.Write([]string{"from", "to", "value", "count"})
-	for k, v := range tx {
-		if k != addr {
-			for i, j := range v {
-				writerIn.Write([]string{k, i, strconv.FormatFloat(j[0], 'f', 6, 64), strconv.FormatFloat(j[1], 'f', 3, 64)})
-			}
-		} else {
-			for i, j := range v {
-				writerOut.Write([]string{k, i, strconv.FormatFloat(j[0], 'f', 6, 64), strconv.FormatFloat(j[1], 'f', 3, 64)})
+	writerIn.Write([]string{"from", "to", "value", "count", "minTimestamp", "maxTimestamp"})
+	writerOut.Write([]string{"from", "to", "value", "count", "minTimestamp", "maxTimestamp"})
+	for from, tos := range tx {
+		for to := range tos {
+			var detail trongrid.TxDetail
+			detail = tx[from][to]
+			var minTS = lo.MinBy(detail.TxTimestamp, func(a int64, b int64) bool {
+				return a < b
+			})
+			var maxTS = lo.MaxBy(detail.TxTimestamp, func(a int64, b int64) bool {
+				return a > b
+			})
+			if from == addr {
+				writerOut.Write([]string{from, to, strconv.FormatFloat(detail.Total, 'f', 6, 64), strconv.FormatUint(detail.TxCount, 10), tsToString(minTS), tsToString(maxTS)})
+			} else {
+				writerIn.Write([]string{from, to, strconv.FormatFloat(detail.Total, 'f', 6, 64), strconv.FormatUint(detail.TxCount, 10), tsToString(minTS), tsToString(maxTS)})
 			}
 		}
 	}
@@ -47,7 +60,3 @@ func mapToCsv(addr string, tx map[string]map[string][]float64) {
 	defer txInFile.Close()
 	Logger.Println("done")
 }
-
-//func drawImage(tx map[string]map[string][]float64) {
-//
-//}
